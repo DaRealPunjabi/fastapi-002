@@ -1,7 +1,7 @@
 from ast import While
 from sqlite3 import Cursor
 from turtle import title
-from typing import Optional
+from typing import List, Optional
 #from fastapi import Body, FastAPI
 
 from fastapi import FastAPI, Response, status, HTTPException, Depends
@@ -52,7 +52,7 @@ my_posts = [{"title": "title of post 1", "content": "content of post 1", "id": 1
 def root():
     return {"message": "Hello World ..."}
 
-@app.get("/posts/{id}")
+@app.get("/posts/{id}", response_model=schemas.Post)
 #def get_post(id: int, response: Response):
 def get_post(id: int, db: Session = Depends(get_db)):
     print(id)
@@ -61,7 +61,7 @@ def get_post(id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with id: {id} was not found")
     print(post.__dict__)
-    return{"post": post}
+    return post
 
 @app.delete("/posts/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_post(id: int, db: Session = Depends(get_db)):
@@ -75,7 +75,7 @@ def delete_post(id: int, db: Session = Depends(get_db)):
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-@app.put("/posts/{id}")
+@app.put("/posts/{id}", response_model=schemas.Post)
 def update_post(id: int, post: schemas.PostCreate,  db: Session = Depends(get_db)):
     print("In Update")
     print(id)
@@ -90,20 +90,20 @@ def update_post(id: int, post: schemas.PostCreate,  db: Session = Depends(get_db
     db.commit()
     updated_post = post_query.first()
     print(updated_post.__dict__)
-    return{"post": updated_post}
+    return updated_post
 
-@app.get("/posts")
+@app.get("/posts", response_model=List[schemas.Post])
 def get_posts(db: Session = Depends(get_db)):
     posts = db.query(models.Post).all()
     print(posts)
-    return {"data": posts}
+    return posts
 
-@app.post("/posts", status_code=status.HTTP_201_CREATED)
+@app.post("/posts", status_code=status.HTTP_201_CREATED, response_model=schemas.Post)
 def create_posts(post: schemas.PostCreate, db: Session = Depends(get_db)):
     # new_post = models.Post(title=post.title, content=post.content, published=post.published)
     new_post = models.Post(**post.dict())
     db.add(new_post)
     db.commit()
     db.refresh(new_post)
-    return {"data": new_post}
+    return new_post
 
