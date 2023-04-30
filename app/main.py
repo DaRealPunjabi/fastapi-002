@@ -2,6 +2,7 @@ from ast import While
 from sqlite3 import Cursor
 from turtle import title
 from typing import List, Optional
+from typing_extensions import deprecated
 #from fastapi import Body, FastAPI
 
 from fastapi import FastAPI, Response, status, HTTPException, Depends
@@ -13,7 +14,7 @@ from psycopg2.extras import RealDictCursor
 import time
 from sqlalchemy.orm import Session
 
-from . import models, schemas
+from . import models, schemas, utils
 from .database import engine, get_db
 
 models.Base.metadata.create_all(bind=engine)
@@ -107,3 +108,23 @@ def create_posts(post: schemas.PostCreate, db: Session = Depends(get_db)):
     db.refresh(new_post)
     return new_post
 
+@app.post("/users", status_code=status.HTTP_201_CREATED, response_model=schemas.UserOut)
+def create_posts(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    hashed_password = utils.hash(user.password)
+    user.password = hashed_password
+    new_user = models.User(**user.dict())
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
+
+
+@app.get("/users/{id}", response_model=schemas.UserOut)
+def get_user(id: int, db: Session = Depends(get_db)):
+    print(id)
+    user = db.query(models.User).filter(models.User.id == id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"post with id: {id} was not found")
+    print(user.__dict__)
+    return user
