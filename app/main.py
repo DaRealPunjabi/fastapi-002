@@ -4,15 +4,22 @@ from turtle import title
 from typing import Optional
 #from fastapi import Body, FastAPI
 
-from fastapi import FastAPI, Response, status, HTTPException
+from fastapi import FastAPI, Response, status, HTTPException, Depends
 from fastapi.params import Body
 from pydantic import BaseModel
 from random import randrange
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import time
+from sqlalchemy.orm import Session
+
+from . import models
+from .database import engine, get_db
+
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
 
 class Post(BaseModel):
     title: str
@@ -38,7 +45,6 @@ while True:
         print("Error: ", error)
         time.sleep(2)
 
-
 # list of dictionaries
 my_posts = [{"title": "title of post 1", "content": "content of post 1", "id": 1},
             {"title": "favorite foods", "content": "I like pizza", "id": 2}]    
@@ -56,6 +62,10 @@ def find_index_post(id):
 @app.get("/")
 def root():
     return {"message": "Hello World ..."}
+
+@app.get("/sqlalchemy")
+def sqlalchemy(db: Session = Depends(get_db)):
+    return {"status": "Susccess"}
 
 @app.get("/posts/{id}")
 #def get_post(id: int, response: Response):
@@ -96,8 +106,6 @@ def update_post(id: int, post: Post):
                             detail=f"post with id: {id} does not exist")
     return{"post": updated_post}
 
-
-
 @app.get("/posts")
 def get_posts():
     cursor.execute("""SELECT * FROM posts""")
@@ -114,6 +122,4 @@ def create_posts(post: Post):
     new_post = cursor.fetchone()
     conn.commit()
     return {"data": new_post}
-
-
 
