@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Response, status, HTTPException, Depends, APIRouter
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from .. import models, schemas, utils, oauth2
 from ..database import get_db
 
@@ -70,9 +70,14 @@ def update_post(id: int, post: schemas.PostCreate,  db: Session = Depends(get_db
 
 @router.get("/", response_model=List[schemas.Post])
 def get_posts(db: Session = Depends(get_db),
-                 current_user: int = Depends(oauth2.get_current_user)):
+                 current_user: int = Depends(oauth2.get_current_user),
+                 limit: int = 10, skip: int = 0, search: Optional[str] = ""):
     print("In Get")
-    posts = db.query(models.Post).all()
+    print(limit)
+    posts = db.query(models.Post).filter(models.Post.title.contains(search)).limit(
+        limit).offset(skip).all()
+    # posts = db.query(models.Post).limit(limit).all()
+    # posts = db.query(models.Post).all()
     # posts = db.query(models.Post).filter(
     #     models.Post.owner_id == current_user.id).all()
     # print(type(posts))
