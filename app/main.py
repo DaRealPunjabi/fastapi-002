@@ -1,21 +1,16 @@
-from ast import While
-from sqlite3 import Cursor
-from turtle import title
-from typing import List, Optional
-from typing_extensions import deprecated
-#from fastapi import Body, FastAPI
 
-from fastapi import FastAPI, Response, status, HTTPException, Depends
-from fastapi.params import Body
+
+from fastapi import FastAPI
+
 from pydantic import BaseModel
-from random import randrange
+
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import time
-from sqlalchemy.orm import Session
 
-from . import models, schemas, utils
-from .database import engine, get_db
+
+from . import models
+from .database import engine
 from .routers import post, user, auth
 
 models.Base.metadata.create_all(bind=engine)
