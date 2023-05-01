@@ -25,12 +25,21 @@ def get_post(id: int, db: Session = Depends(get_db),
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_post(id: int, db: Session = Depends(get_db),
                  current_user: int = Depends(oauth2.get_current_user)):
+
+    print("In Delete")
     print(id)
+    print(current_user.__dict__)
     delete_query = db.query(models.Post).filter(models.Post.id == id)
 
-    if delete_query.first() == None:
+    delete_item = delete_query.first()
+
+    if delete_item == None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with id: {id} does not exist")
+    
+    if delete_item.owner_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorised to perform requested action")
+    
     delete_query.delete(synchronize_session=False)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -40,33 +49,45 @@ def update_post(id: int, post: schemas.PostCreate,  db: Session = Depends(get_db
                  current_user: int = Depends(oauth2.get_current_user)):
     print("In Update")
     print(id)
+    print(current_user.__dict__)
     print(post)
-    post_query = db.query(models.Post).filter(models.Post.id == id)
 
-    db.commit()
-    if post_query == None:
+    update_query = db.query(models.Post).filter(models.Post.id == id)
+
+    update_item = update_query.first()
+
+    if update_item == None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with id: {id} does not exist")
-    post_query.update(post.dict(), synchronize_session=False)
+    if update_item.owner_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorised to perform requested action")
+
+    update_query.update(post.dict(), synchronize_session=False)
     db.commit()
-    updated_post = post_query.first()
+    updated_post = update_query.first()
     print(updated_post.__dict__)
     return updated_post
 
 @router.get("/", response_model=List[schemas.Post])
 def get_posts(db: Session = Depends(get_db),
                  current_user: int = Depends(oauth2.get_current_user)):
+    print("In Get")
     posts = db.query(models.Post).all()
-    print(posts)
+    # posts = db.query(models.Post).filter(
+    #     models.Post.owner_id == current_user.id).all()
+    # print(type(posts))
+    # for item in posts:
+    #     print(item.__dict__)
     return posts
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.Post)
 def create_posts(post: schemas.PostCreate, db: Session = Depends(get_db),
                  current_user: int = Depends(oauth2.get_current_user)):
     # new_post = models.Post(title=post.title, content=post.content, published=post.published)
+
     print("In Create")
-    print(current_user)
-    new_post = models.Post(**post.dict())
+    print(current_user.__dict__)
+    new_post = models.Post(owner_id=current_user.id, **post.dict())
     db.add(new_post)
     db.commit()
     db.refresh(new_post)

@@ -66,4 +66,5 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     print(verified_token)
     # return verified_token
     user = db.query(models.User).filter(models.User.id == verified_token.id).first()
+    print(user.__dict__)
     return user
